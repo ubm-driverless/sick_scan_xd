@@ -75,6 +75,38 @@ of this file.
 
 # Bloom release
 
+Summary of bloom release build:
+
+* Update release repositories for rosdistros noetic, humble, iron and jazzy with `bloom-release` on Linux:
+   ```
+   cd /tmp
+   bloom-release --rosdistro noetic -d sick_scan_xd # update release repository https://github.com/SICKAG/sick_scan_xd-release.git, argument -d enables debug infos 
+   bloom-release --rosdistro humble -d sick_scan_xd # update release repository https://github.com/ros2-gbp/sick_scan_xd-release.git, argument -d enables debug infos 
+   bloom-release --rosdistro iron   -d sick_scan_xd # update release repository https://github.com/ros2-gbp/sick_scan_xd-release.git, argument -d enables debug infos 
+   bloom-release --rosdistro jazzy  -d sick_scan_xd # update release repository https://github.com/ros2-gbp/sick_scan_xd-release.git, argument -d enables debug infos
+   ```
+   Confirm "push to release" and "open pull request" with Y. 
+   If `bloom-release` is not installed, then install it by `sudo apt-get install python-bloom`.
+
+* Check that the new version is committed in the release repositories https://github.com/SICKAG/sick_scan_xd-release.git (ROS 1) and https://github.com/ros2-gbp/sick_scan_xd-release.git (ROS 2).
+
+* Check Jenkins build status (new Jenkins build after 0-3 days):
+   * ROS 1 noetic jenkins build status: https://build.ros.org/job/Ndev__sick_scan_xd__ubuntu_focal_amd64/lastBuild/
+   * ROS 2 humble jenkins build status: https://build.ros2.org/job/Hdev__sick_scan_xd__ubuntu_jammy_amd64/lastBuild/
+   * ROS 2 iron jenkins build status: https://build.ros2.org/job/Idev__sick_scan_xd__ubuntu_jammy_amd64/lastBuild/
+   * ROS 2 jazzy jenkins build status: https://build.ros2.org/job/Jdev__sick_scan_xd__ubuntu_noble_amd64/lastBuild/
+
+
+* Check apt version after 4-6 weeks with `sudo apt show ros-<distro>-sick-scan-xd`:
+   ```
+   cd /tmp
+   sudo apt update
+   sudo apt show ros-noetic-sick-scan-xd
+   sudo apt show ros-humble-sick-scan-xd
+   sudo apt show ros-iron-sick-scan-xd
+   sudo apt show ros-jazzy-sick-scan-xd   
+   ```
+
 ## First time installation of toolchain
 
 1. Install on Linux:
@@ -322,17 +354,17 @@ Check `devel_branch` in https://github.com/ros2-gbp/sick_scan_xd-release/blob/ma
 
 **Bloom builds a new sick_scan_xd version, but apt still installs an old version**
 
-  * Check the sick_scan_xd version in the release repositories https://github.com/SICKAG/sick_scan_xd-release.git (ROS 1) and https://github.com/ros2-gbp/sick_scan_xd-release.git (ROS 2)
-  * Install bloom (if not yet done) using `sudo apt-get install python-bloom` on Linux or `pip install -U bloom` on Windows
-  * Run
-        ```
-        bloom-release --rosdistro noetic -d sick_scan_xd # release repository: https://github.com/SICKAG/sick_scan_xd-release.git, argument -d enables debug infos
-        bloom-release --rosdistro humble -d sick_scan_xd # release repository: https://github.com/ros2-gbp/sick_scan_xd-release.git, argument -d enables debug infos
-        bloom-release --rosdistro iron   -d sick_scan_xd # release repository: https://github.com/ros2-gbp/sick_scan_xd-release.git, argument -d enables debug infos
-        bloom-release --rosdistro jazzy  -d sick_scan_xd # release repository: https://github.com/ros2-gbp/sick_scan_xd-release.git, argument -d enables debug infos
-        ```
-  * In case of github 2FA errors: Follow http://wiki.ros.org/bloom/Tutorials/GithubManualAuthorization to create a 2FA token and configure the token in file `~/.config/bloom`.
-  * Note: Updates of release repository https://github.com/SICKAG/sick_scan_xd-release.git require github authentification via ssh. See https://docs.github.com/en/authentication/connecting-to-github-with-ssh and https://wiki.ros.org/bloom/Tutorials/GithubManualAuthorization for details.
+* Check the sick_scan_xd version in the release repositories https://github.com/SICKAG/sick_scan_xd-release.git (ROS 1) and https://github.com/ros2-gbp/sick_scan_xd-release.git (ROS 2)
+* Install bloom (if not yet done) using `sudo apt-get install python-bloom` on Linux or `pip install -U bloom` on Windows
+* Run `bloom-release` for ros noetic, humble, iron and jazzy:
+   ```
+   bloom-release --rosdistro noetic -d sick_scan_xd # release repository: https://github.com/SICKAG/sick_scan_xd-release.git, argument -d enables debug infos
+   bloom-release --rosdistro humble -d sick_scan_xd # release repository: https://github.com/ros2-gbp/sick_scan_xd-release.git, argument -d enables debug infos
+   bloom-release --rosdistro iron   -d sick_scan_xd # release repository: https://github.com/ros2-gbp/sick_scan_xd-release.git, argument -d enables debug infos
+   bloom-release --rosdistro jazzy  -d sick_scan_xd # release repository: https://github.com/ros2-gbp/sick_scan_xd-release.git, argument -d enables debug infos
+   ```
+* In case of github 2FA errors: Follow http://wiki.ros.org/bloom/Tutorials/GithubManualAuthorization to create a 2FA token and configure the token in file `~/.config/bloom`.
+* Note: Updates of release repository https://github.com/SICKAG/sick_scan_xd-release.git require github authentification via ssh. See https://docs.github.com/en/authentication/connecting-to-github-with-ssh and https://wiki.ros.org/bloom/Tutorials/GithubManualAuthorization for details.
 
 # Testing
 

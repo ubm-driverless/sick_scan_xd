@@ -1151,10 +1151,19 @@ bool sick_scan_xd::SickScanServices::serviceCbFieldSetWrite(sick_scan_srv::Field
   int field_set_selection_method = service_request.field_set_selection_method_in;
   int active_field_set = service_request.active_field_set_in;
   std::vector<unsigned char> sopasReply;
+  std::string sopasReplyString;
   int result1 = ExitSuccess, result2 = ExitSuccess;
   if (field_set_selection_method >= 0)
   {
+    if(!sendAuthorization())
+      result1 = ExitError;
+    if(!sendSopasAndCheckAnswer("sMN LMCstopmeas", sopasReply, sopasReplyString))
+      result1 = ExitError;
     result1 = m_common_tcp->writeFieldSetSelectionMethod(field_set_selection_method, sopasReply);
+    if(!sendSopasAndCheckAnswer("sMN LMCstartmeas", sopasReply, sopasReplyString))
+      result1 = ExitError;
+    if(!sendSopasAndCheckAnswer("sMN Run", sopasReply, sopasReplyString))
+      result1 = ExitError;
   }
   if (active_field_set >= 0)
   {
