@@ -631,7 +631,11 @@ namespace sick_scan_xd
     publish_lidoutputstate_ = false;
     if (parser_->getCurrentParamPtr()->getUseEvalFields() == USE_EVAL_FIELD_TIM7XX_LOGIC || parser_->getCurrentParamPtr()->getUseEvalFields() == USE_EVAL_FIELD_LMS5XX_LOGIC)
     {
-      lferec_pub_ = rosAdvertise<sick_scan_msg::LFErecMsg>(nh, nodename + "/lferec", 100, true);
+#if __ROS_VERSION == 2
+      lferec_pub_ = rosAdvertise<sick_scan_msg::LFErecMsg>(nh, nodename + "/lferec", 100, rclcpp::SystemDefaultsQoS(), true);
+#else      
+      lferec_pub_ = rosAdvertise<sick_scan_msg::LFErecMsg>(nh, nodename + "/lferec", 100, 10, true);
+#endif
       lidinputstate_pub_ = rosAdvertise<sick_scan_msg::LIDinputstateMsg>(nh, nodename + "/lidinputstate", 100);
       lidoutputstate_pub_ = rosAdvertise<sick_scan_msg::LIDoutputstateMsg>(nh, nodename + "/lidoutputstate", 100);
       publish_lferec_ = true;
