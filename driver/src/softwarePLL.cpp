@@ -216,6 +216,7 @@ bool SoftwarePLL::getCorrectedTimeStamp(uint32_t &sec, uint32_t &nanoSec, uint64
     double relTimeStamp = extraPolateRelativeTimeStamp(curtick); // evtl. hier wg. Ueberlauf noch einmal pruefen
     corrTime = relTimeStamp + this->FirstTimeStamp();
   }
+  corrTime = std::max<double>(0, corrTime);
   sec = (uint32_t) corrTime;
   double frac = corrTime - sec;
   nanoSec = (uint32_t) (1E9 * frac);
