@@ -653,10 +653,14 @@ namespace sick_scan_xd
     if (parser_->getCurrentParamPtr()->getScannerName().compare(SICK_SCANNER_SCANSEGMENT_XD_NAME) != 0
      && parser_->getCurrentParamPtr()->getScannerName().compare(SICK_SCANNER_PICOSCAN_NAME) != 0)
     {
-      ROS_INFO_STREAM("Publishing lidar pointcloud2 to " << cloud_topic_val);
       cloud_pub_ = rosAdvertise<ros_sensor_msgs::PointCloud2>(nh, cloud_topic_val, 100);
+      ROS_INFO_STREAM("Publishing lidar pointcloud2 to " << cloud_topic_val);
 
-      imuScan_pub_ = rosAdvertise<ros_sensor_msgs::Imu>(nh, nodename + "/imu", 100);
+      std::string imu_topic = nodename + "/imu";
+      rosDeclareParam(nh, "imu_topic", imu_topic);
+      rosGetParam(nh, "imu_topic", imu_topic);
+      imuScan_pub_ = rosAdvertise<ros_sensor_msgs::Imu>(nh, imu_topic, 100);
+      ROS_INFO_STREAM("Publishing imu data to " << imu_topic);
 
       Encoder_pub = rosAdvertise<sick_scan_msg::Encoder>(nh, nodename + "/encoder", 100);
 
@@ -3809,7 +3813,8 @@ namespace sick_scan_xd
         startProtocolSequence.push_back(CMD_START_SCANDATA);
       }
 
-      if (this->parser_->getCurrentParamPtr()->getNumberOfLayers() == 4) // MRS1104: start IMU-Transfer
+      if (this->parser_->getCurrentParamPtr()->getNumberOfLayers() == 4 ||
+        this->parser_->getCurrentParamPtr()->getScannerName().compare(SICK_SCANNER_LRS_4XXX_NAME) == 0) // LRS4xxx or MRS1104: start IMU-Transfer
       {
         bool imu_enable = false;
         rosDeclareParam(nh, "imu_enable", imu_enable);

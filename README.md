@@ -602,6 +602,8 @@ cmake flags can be combined. Use flags `-DLDMRS=0 -DSCANSEGMENT_XD=0` to build w
 
 By default, sick_scan_xd builds with compiler flag `-O3` (optimization level for max speed). The optimization level can be overwritten (e.g. for debugging) by cmake flag `-DO=0` (compiler flags `-g -O0`), `-DO=1` (for compiler flags `-O1`) or `-DO=2` (for compiler flags `-O2`).
 
+The sick_scan_xd driver requires C++14 and gcc version 5 or newer.
+
 > **_NOTE:_** To create source code documentation by doxygen, run
 ```
 cd ./doxygen
@@ -641,6 +643,33 @@ To install sick_scan_xd on Windows, follow the steps below:
    popd
    ```
    For development or debugging, open file `sick_scan_xd\build\sick_scan_xd.sln` in Visual Studio. To install the library and header in the system folder, run `cmake --build . --target install` with admin privileges.
+
+   Replace `_cmake_string` and `_msvc` by
+   ```
+   set _cmake_string=Visual Studio 17 2022
+   set _msvc=Visual Studio 2022
+   ```
+   for Visual Studio 2022:
+   ```
+   cd sick_scan_xd
+   REM Set environment variables
+   set _os=x64
+   set _cmake_string=Visual Studio 17 2022
+   set _msvc=Visual Studio 2022
+   set _cmake_build_dir=build
+   REM Create the build directory if it doesn't exist
+   if not exist %_cmake_build_dir% mkdir %_cmake_build_dir%
+   REM Navigate to the build directory
+   pushd %_cmake_build_dir%
+   REM Run CMake to configure the project (using Visual Studio 2022)
+   cmake -DROS_VERSION=0 -G "%_cmake_string%" ..
+   REM Build the project in Debug and Release modes
+   cmake --build . --clean-first --config Debug
+   cmake --build . --clean-first --config Release
+   REM Note: Open sick_scan_xd.sln in Visual Studio 2022 for development and debugging
+   REM Return to the previous directory
+   popd
+   ```
 
 After successful build, binary files `sick_generic_caller.exe` and `sick_scan_xd_shared_lib.dll` are created in folders `sick_scan_xd\build\Debug` and `sick_scan_xd\build\Release`.
 
@@ -1049,12 +1078,19 @@ ros2 service call /SickScanExit sick_scan_xd/srv/SickScanExitSrv "{}" # stop sca
 >    * send `sMN LMCstartmeas` and `sMN Run` to switch again into measurement mode within the timeout, or
 >    * increase the driver timeout `read_timeout_millisec_default` in the launch-file.
 
-Additional services can be available for specific lidars. Service "GetContaminationResult" is e.g. available for MRS1xxx, LMS1000 and multiScan:
+Additional services can be available for specific lidars. Service "GetContaminationResult" is e.g. available for MRS1xxx, LMS1xxx, LRS4xxx and multiScan:
 ```
 # ROS 1 example for service GetContaminationResult (LMS 1xxx)
 rosservice call /sick_lms_1xxx/GetContaminationResult "{}"
 # ROS 2 example for service GetContaminationResult (LMS 1xxx)
 ros2 service call /GetContaminationResult sick_scan_xd/srv/GetContaminationResultSrv "{}"
+```
+Service "GetContaminationData" is supported for LRS4xxx:
+```
+# ROS 1 example for service GetContaminationData (LRS 4xxx only)
+rosservice call /sick_lrs_4xxx/GetContaminationData "{}"
+# ROS 2 example for service GetContaminationData (LRS 4xxx only)
+ros2 service call /GetContaminationData sick_scan_xd/srv/GetContaminationDataSrv "{}"
 ```
 
 Example sequence with stop and start measurement to set a particle filter (TiM-7xxx on ROS 1):
@@ -1115,7 +1151,7 @@ Details of timeout settings:
 
 * read_timeout_millisec_startup: Read timeout in milliseconds during initialization after startup. If SOPAS commands are not responded within 120 seconds (default), the TCP socket is closed and lidar is reinitialized.
 
-* read_timeout_millisec_kill_node: Pointcloud timeout in milliseconds in operational (measurement) mode. If the sick_scan_xd does not publish a point cloud within the last 150 seconds, the sick_scan_xd process is killed. Should never happen, but is the �last resort� to exit after any kind of error (e.g. socket hangs up and blocks after network trouble).
+* read_timeout_millisec_kill_node: Pointcloud timeout in milliseconds in operational (measurement) mode. If the sick_scan_xd does not publish a point cloud within the last 150 seconds, the sick_scan_xd process is killed. Should never happen, but is the "last resort" to exit after any kind of error (e.g. socket hangs up and blocks after network trouble).
 
 * All timeouts configured in milliseconds
 
@@ -1127,6 +1163,8 @@ Details of timeout settings:
    * read_timeout_millisec_kill_node <= 0 deactivates pointcloud monitoring
 
 * Parameter read_timeout_millisec_default and read_timeout_millisec_startup: value 0 and negative values are currently NOT mapped to other values, i.e. will cause an immediately timeout error. Use value 2147483647 or message_monitoring_enabled = false to deactivate read timeouts (not recommended)
+
+* TCP timeouts depend on system settings. On Ubuntu, parameter `tcp_syn_retries` specifies the amount of retries before tcp open fails if no device is connected. The TCP timeout on opening a new tcp connection is `2^(tcp_syn_retries + 1) - 1`, which leads to a timout of 127 seconds with the default value tcp_syn_retries=6. To decrease the value, add the line `net.ipv4.tcp_syn_retries = 2` in file `/etc/sysctl.conf` and reinit sysctl with `sudo sysctl -p`.
 
 ## SOPAS Mode
 
@@ -1498,6 +1536,53 @@ The sick_scan_xd API can be used on Linux or Windows in any language with suppor
    The registered callback will be executed whenever the lidar has sent new scan data and receives the (cartesian or polar) point cloud by a parameter of type SickScanPointCloudMsg. The SickScanPointCloudMsg in sick_scan_xd API corresponds to ROS pointcloud: The cartesian point cloud  (registered by SickScanApiRegisterCartesianPointCloudMsg) contains the fields (x, y, z, intensity). The polar point cloud (registered by SickScanApiRegisterPolarPointCloudMsg) contains the fields (range, azimuth, elevation, intensity). Each field contains its name (i.e. x, y, z, range, azimuth, elevation, or intensity) and offset. The scan data is a flat buffer of size width x height fields:
 
    ![apiPointCloudMsg](doc/sick_scan_api/apiPointCloudMsg.png)
+
+   The following C++ code shows how to convert a cartesian point cloud to a vector of 3D points (x, y, z) and intensity:
+   ```
+   class ScanPointXYZI {
+   public:
+     float x = 0;
+     float y = 0;
+     float z = 0;
+     float i = 0;
+   };
+
+   // Create a deep copy of the scan data by converting a point cloud message to a vector of cartesian points of type ScanPointXYZI
+   void convertScanPoints(const SickScanPointCloudMsg& msg, std::vector<ScanPointXYZI>& scan_points)
+   {
+     // Get offsets for x, y, z, intensity values
+     SickScanPointFieldMsg* msg_fields_buffer = (SickScanPointFieldMsg*)msg.fields.buffer;
+     int field_offset_x = -1, field_offset_y = -1, field_offset_z = -1, field_offset_intensity = -1;
+     for (int n = 0; n < msg.fields.size; n++)
+     {
+       if (strcmp(msg_fields_buffer[n].name, "x") == 0 && msg_fields_buffer[n].datatype == SICK_SCAN_POINTFIELD_DATATYPE_FLOAT32)
+         field_offset_x = msg_fields_buffer[n].offset;
+       else if (strcmp(msg_fields_buffer[n].name, "y") == 0 && msg_fields_buffer[n].datatype == SICK_SCAN_POINTFIELD_DATATYPE_FLOAT32)
+         field_offset_y = msg_fields_buffer[n].offset;
+       else if (strcmp(msg_fields_buffer[n].name, "z") == 0 && msg_fields_buffer[n].datatype == SICK_SCAN_POINTFIELD_DATATYPE_FLOAT32)
+         field_offset_z = msg_fields_buffer[n].offset;
+       else if (strcmp(msg_fields_buffer[n].name, "intensity") == 0 && msg_fields_buffer[n].datatype == SICK_SCAN_POINTFIELD_DATATYPE_FLOAT32)
+         field_offset_intensity = msg_fields_buffer[n].offset;
+     }
+     assert(field_offset_x >= 0 && field_offset_y >= 0 && field_offset_z >= 0);
+     // Convert all points in the point cloud to ScanPointXYZI
+     scan_points.clear();
+     scan_points.resize(msg.height * msg.width);
+     for (int row_idx = 0, point_idx = 0; row_idx < (int)msg.height; row_idx++)
+     {
+       for (int col_idx = 0; col_idx < (int)msg.width; col_idx++, point_idx++)
+       {
+         // Get cartesian point coordinates
+         int polar_point_offset = row_idx * msg.row_step + col_idx * msg.point_step;
+         scan_points[point_idx].x = *((float*)(msg.data.buffer + polar_point_offset + field_offset_x));
+         scan_points[point_idx].y = *((float*)(msg.data.buffer + polar_point_offset + field_offset_y));
+         scan_points[point_idx].z = *((float*)(msg.data.buffer + polar_point_offset + field_offset_z));
+         if (field_offset_intensity >= 0)
+           scan_points[point_idx].i = *((float*)(msg.data.buffer + polar_point_offset + field_offset_intensity));
+       }
+     }
+   }
+   ```
 
    The following python code shows how to convert a cartesian point cloud to 3D points (x, y, z):
    ```
@@ -1943,7 +2028,7 @@ For upside down mounted devices, the point cloud can be rotated by 180 deg about
 
 ## IMU Support
 
-Devices of the MRS6xxx and MRS1xxx series are available with an optionally built-in IMU.
+Devices of the LRS-4xxx, MRS6xxx and MRS1xxx series are available with an optionally built-in IMU.
 
 For the IMU support of multiScan100 and picoScan100 refer to the device specific section.
 
@@ -1951,13 +2036,10 @@ By setting the following config parameter in the launch file, the output of [imu
 ```xml
 <param name="imu_enable" type="bool" value="True" />
 <param name="imu_topic" type="string" value="imu"/>
+<param name="imu_frame_id" type="string" value="imu_link"/>
 ```
 The imu Messages contain covariance matrices, these are currently determined from empirical values and are not measured specifically for each scanner.
 The laser scanner provides additional information (tick timestamp and confidence) to the Imu messages these can be activated by activating the [SickImu messages](msg/SickImu.msg).
-
-```xml
-<param name="imu_enable_additional_info" type="bool" value="True" />
-```
 
 IMU messages are only supported in SOPAS binary mode. Due to the high data rate of the IMU messages (100 Hz and more) while sending the standard laser scanner messages at the same time, the ASCII mode is not supported. Please set the scanner to binary mode if you are using the IMU.
 

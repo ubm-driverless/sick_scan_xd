@@ -10,8 +10,11 @@
     <arg name="nodename" default="sick_lrs_4xxx"/>
     <arg name="add_transform_xyz_rpy" default="0,0,0,0,0,0"/>
     <arg name="add_transform_check_dynamic_updates" default="false"/> <!-- Note: dynamical updates of parameter add_transform_xyz_rpy can decrease the performance and is therefor deactivated by default -->
-    <arg name="encoder_mode" default="-1"/> <!-- Encoder settings (default: -1, i.e. not set): 0: Off, 1: Single increment, 2: Direction recognition phase, 3: Direction recognition level, 4: Fixed increment speed/ticks (LMS4000 only) -->
-    <arg name="tf_publish_rate" default="10.0" />                     <!-- Rate to publish TF messages in hz, use 0 to deactivate TF messages -->
+    <arg name="encoder_mode" default="-1"/>        <!-- Encoder settings (default: -1, i.e. not set): 0: Off, 1: Single increment, 2: Direction recognition phase, 3: Direction recognition level, 4: Fixed increment speed/ticks (LMS4000 only) -->
+    <arg name="tf_publish_rate" default="10.0" />  <!-- Rate to publish TF messages in hz, use 0 to deactivate TF messages -->
+    <arg name="imu_enable" default="true"/>        <!-- IMU messages are enabled by default for LRS-4xxx devices -->
+    <arg name="imu_topic" default="imu" />         <!-- ros topic to publish IMU data -->
+    <arg name="imu_frame_id" default="imu_link"/>  <!-- frame id for published IMU data -->
     <node name="$(arg nodename)" pkg="sick_scan_xd" type="sick_generic_caller" respawn="false" output="screen" required="true">
         <param name="scanner_type" type="string" value="sick_lrs_4xxx"/>
         <param name="hostname" type="string" value="$(arg hostname)"/>
@@ -59,6 +62,11 @@
         64   25Hz & 0.200 deg 0x   25 Hz   25 Hz 0.200 deg 0.200 deg 360 deg
         65   25Hz & 0.240 deg 0x   25 Hz   25 Hz 0.240 deg 0.240 deg 360 deg
          -->
+
+        <!-- IMU messages are enabled by default for LRS-4xxx devices -->
+        <param name="imu_enable" type="bool" value="$(arg imu_enable)"/>
+        <param name="imu_topic" type="string" value="$(arg imu_topic)"/>
+        <param name="imu_frame_id" type="string" value="$(arg imu_frame_id)"/>
 
         <!-- Apply an additional transform to the cartesian pointcloud, default: "0,0,0,0,0,0" (i.e. no transform) -->
         <!-- Note: add_transform_xyz_rpy is specified by 6D pose x, y, z, roll, pitch, yaw in [m] resp. [rad] -->

@@ -1,7 +1,7 @@
 ####################################################
 # CMakeLists.txt for project sick_scan
 ####################################################
-cmake_minimum_required(VERSION 3.5)
+cmake_minimum_required(VERSION 3.13)
 
 project(sick_scan_xd)
 
@@ -280,6 +280,7 @@ if(ROS_VERSION EQUAL 1)
         ECRChangeArrSrv.srv
         FieldSetReadSrv.srv
         FieldSetWriteSrv.srv
+        GetContaminationDataSrv.srv
         GetContaminationResultSrv.srv
         LIDoutputstateSrv.srv
         SCdevicestateSrv.srv
@@ -406,6 +407,7 @@ if(ROS_VERSION EQUAL 2)
         "srv/ECRChangeArrSrv.srv"
         "srv/FieldSetReadSrv.srv"
         "srv/FieldSetWriteSrv.srv"        
+        "srv/GetContaminationDataSrv.srv"
         "srv/GetContaminationResultSrv.srv"
         "srv/LIDoutputstateSrv.srv"
         "srv/SCdevicestateSrv.srv"

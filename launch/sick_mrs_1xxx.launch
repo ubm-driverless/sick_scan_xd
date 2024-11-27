@@ -57,8 +57,8 @@ default max_angle for this scanner type is +137.5 degree.
         <param name="scandatacfg_azimuth_table" type="int" value="1"/> <!-- Optional azimuth table (MRS-1xxx): if activated (i.e. 1 and firmware >= 2.3), azimuth angles are transmitted for each scan point, otherwise (i.e. 0) constant azimuth steps are used to calculate the cartesian pointclouds -->
 
         <param name="imu_enable" type="bool" value="$(arg imu_enable)"/>
-        <param name="imu_enable_additional_info" type="bool" value="True"/>                 
         <param name="imu_topic" type="string" value="$(arg imu_topic)"/>
+        <param name="imu_frame_id" type="string" value="$(arg imu_frame_id)"/>
         
         
         <!-- Optional range filter configuration: If the range of a scan point is less than range_min or greater than range_max, the point can be filtered. -->
