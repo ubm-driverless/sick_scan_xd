@@ -143,3 +143,5 @@ test/docker/python/__pycache__/
 tools/pandoc/
 
 test/docker/images/
+
+examples/scripts/build_api_examples_windows_vs2022.cmd

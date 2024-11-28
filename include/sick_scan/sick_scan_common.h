@@ -185,6 +185,7 @@ namespace sick_scan_xd
       CMD_SET_TO_COLA_B_PROTOCOL,  //
       CMD_GET_SAFTY_FIELD_CFG,// gets the safty fields cfg olny tim 7xxs supported at the moment
 
+      CMD_GET_LFEREC,              // query LFErec messages, send "sRN LFErec"
       CMD_SET_LFEREC_ACTIVE,       // activate LFErec messages, send "sEN LFErec 1"
       CMD_SET_LID_OUTPUTSTATE_ACTIVE,  // activate LIDoutputstate messages, send "sEN LIDoutputstate 1"
       CMD_SET_LID_INPUTSTATE_ACTIVE,  // activate LIDinputstate messages, send "sEN LIDinputstate 1"
@@ -453,6 +454,8 @@ namespace sick_scan_xd
     bool isCompatibleDevice(const std::string identStr) const;
 
     bool switchColaProtocol(bool useBinaryCmd);
+
+    bool evaluateLFErecMessage(uint8_t* receiveBuffer, int receiveBufferLength, bool useBinaryProtocol, const rosTime& recvTimeStamp);
 
     int readLIDinputstate(SickScanFieldMonSingleton *fieldMon, bool useBinaryCmd);
 

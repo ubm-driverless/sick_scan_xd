@@ -1170,6 +1170,12 @@ namespace sick_scan_xd
           }
           expectedAnswers << (n > 0 ? "," : "") << "\"" << searchPattern[n] << "\"" ;
         }
+        int lferec_error_code = ExitSuccess;
+        bool useBinaryProtocol = (*((const uint32_t*)reply->data()) == 0x02020202);
+        if(result == 0 && evaluateLFErecMessage(reply->data(), reply->size(), useBinaryProtocol, rosTimeNow()))
+        {
+          ROS_DEBUG_STREAM("SOPAS LFErec response evaluated: \"" << DataDumper::binDataToAsciiString(reply->data(), reply->size()));
+        }
         if(result != 0)
         {
           if (cmdId == CMD_START_IMU_DATA)
@@ -1666,7 +1672,8 @@ namespace sick_scan_xd
     //                                                                   0320 01 09C4 0 0036EE80 09C4 0 0 09C4 0 0 09C4 0 0
     sopasCmdVec[CMD_GET_SCANDATACONFIGNAV] = "\x02sRN LMPscancfg\x03";
     sopasCmdVec[CMD_SEN_SCANDATACONFIGNAV] = "\x02sEN LMPscancfg 1\x03";
-    sopasCmdVec[CMD_SET_LFEREC_ACTIVE] = "\x02sEN LFErec 1\x03";              // TiM781S: activate LFErec messages, send "sEN LFErec 1"
+    sopasCmdVec[CMD_GET_LFEREC] = "\x02sRN LFErec\x03";           // TiM781, TiM781S: query LFErec messages, send "sRN LFErec"
+    sopasCmdVec[CMD_SET_LFEREC_ACTIVE] = "\x02sEN LFErec 1\x03";  // TiM781S: activate LFErec messages, send "sEN LFErec 1"
     sopasCmdVec[CMD_SET_LID_OUTPUTSTATE_ACTIVE] = "\x02sEN LIDoutputstate 1\x03"; // TiM781S: activate LIDoutputstate messages, send "sEN LIDoutputstate 1"
     sopasCmdVec[CMD_SET_LID_INPUTSTATE_ACTIVE] = "\x02sEN LIDinputstate 1\x03"; // TiM781S: activate LIDinputstate messages, send "sEN LIDinputstate 1"
 
@@ -1797,6 +1804,7 @@ namespace sick_scan_xd
     sopasCmdErrMsg[CMD_SET_SCANDATACONFIGNAV] = "Error setting scandata config";
     sopasCmdErrMsg[CMD_GET_SCANDATACONFIGNAV] = "Error getting scandata config";
     sopasCmdErrMsg[CMD_SEN_SCANDATACONFIGNAV] = "Error setting sEN LMPscancfg";
+    sopasCmdErrMsg[CMD_GET_LFEREC] = "Error getting LFErec message";
     sopasCmdErrMsg[CMD_SET_LFEREC_ACTIVE] = "Error activating LFErec messages";
     sopasCmdErrMsg[CMD_SET_LID_OUTPUTSTATE_ACTIVE] = "Error activating LIDoutputstate messages";
     sopasCmdErrMsg[CMD_SET_LID_INPUTSTATE_ACTIVE] = "Error activating LIDinputstate messages";
@@ -3790,6 +3798,11 @@ namespace sick_scan_xd
           startProtocolSequence.push_back(CMD_SET_LID_INPUTSTATE_ACTIVE); // TiM781S: activate LIDinputstate messages, send "sEN LIDinputstate 1"
           ROS_INFO_STREAM(parser_->getCurrentParamPtr()->getScannerName() << ": activating field monitoring by lidinputstate messages");
         }
+        if (parser_->getCurrentParamPtr()->getUseEvalFields() == USE_EVAL_FIELD_TIM7XX_LOGIC && true == activate_lferec)
+        {
+          startProtocolSequence.push_back(CMD_GET_LFEREC);      // TiM781, TiM781S: query LFErec messages, send "sRN LFErec"
+          ROS_INFO_STREAM(parser_->getCurrentParamPtr()->getScannerName() << ": activating field monitoring by lferec messages");
+        }
       }
 
       // initializing sequence for laserscanner
@@ -4566,32 +4579,9 @@ namespace sick_scan_xd
         }
         return errorCode; // return success to continue looping
       }
-      else if(memcmp(&receiveBuffer[8], "sSN LFErec", strlen("sSN LFErec")) == 0)
+      else if (evaluateLFErecMessage(&receiveBuffer[0], actual_length, useBinaryProtocol, recvTimeStamp))
       {
-        int errorCode = ExitSuccess;
-        ROS_DEBUG_STREAM("SickScanCommon: received " << actual_length << " byte LFErec " << DataDumper::binDataToAsciiString(&receiveBuffer[0], actual_length));
-        // Parse and convert LFErec message
-        sick_scan_msg::LFErecMsg lferec_msg;
-        std::string scanner_name = parser_->getCurrentParamPtr()->getScannerName();
-        EVAL_FIELD_SUPPORT eval_field_logic = parser_->getCurrentParamPtr()->getUseEvalFields(); // == USE_EVAL_FIELD_LMS5XX_LOGIC
-        if (sick_scan_xd::SickScanMessages::parseLFErecMsg(recvTimeStamp, receiveBuffer, actual_length, useBinaryProtocol, eval_field_logic, scanner_name, lferec_msg))
-        {
-          // Publish LFErec message
-          notifyLFErecListener(nh, &lferec_msg);
-          if(publish_lferec_)
-          {
-            rosPublish(lferec_pub_, lferec_msg);
-          }
-          if(cloud_marker_)
-          {
-            cloud_marker_->updateMarker(lferec_msg, eval_field_logic);
-          }
-        }
-        else
-        {
-          ROS_WARN_STREAM("## ERROR SickScanCommon: parseLFErecMsg failed, received " << actual_length << " byte LFErec " << DataDumper::binDataToAsciiString(&receiveBuffer[0], actual_length));
-        }
-        return errorCode; // return success to continue looping
+        return ExitSuccess; // LFErec message evaluated, return success to continue looping
       }
       else if(memcmp(&receiveBuffer[8], "sSN LMDscandatamon", strlen("sSN LMDscandatamon")) == 0)
       {
@@ -6363,6 +6353,37 @@ namespace sick_scan_xd
       }
       return result;
   } // SickScanCommon::readParseSafetyFields()
+
+  bool SickScanCommon::evaluateLFErecMessage(uint8_t* receiveBuffer, int receiveBufferLength, bool useBinaryProtocol, const rosTime& recvTimeStamp)
+  {
+    if(memcmp(&receiveBuffer[8], "sSN LFErec", strlen("sSN LFErec")) == 0 || memcmp(&receiveBuffer[8], "sRA LFErec", strlen("sRA LFErec")) == 0) // currently only Cola binary supported, todo: support Cola Ascii if required for some reason
+    {
+      ROS_DEBUG_STREAM("SickScanCommon: received " << receiveBufferLength << " byte LFErec message \"" << DataDumper::binDataToAsciiString(&receiveBuffer[0], receiveBufferLength) << "\"");
+      // Parse and convert LFErec message
+      sick_scan_msg::LFErecMsg lferec_msg;
+      std::string scanner_name = parser_->getCurrentParamPtr()->getScannerName();
+      EVAL_FIELD_SUPPORT eval_field_logic = parser_->getCurrentParamPtr()->getUseEvalFields(); // == USE_EVAL_FIELD_LMS5XX_LOGIC
+      if (sick_scan_xd::SickScanMessages::parseLFErecMsg(recvTimeStamp, receiveBuffer, receiveBufferLength, useBinaryProtocol, eval_field_logic, scanner_name, lferec_msg))
+      {
+        // Publish LFErec message
+        notifyLFErecListener(m_nh, &lferec_msg);
+        if(publish_lferec_)
+        {
+          rosPublish(lferec_pub_, lferec_msg);
+        }
+        if(cloud_marker_)
+        {
+          cloud_marker_->updateMarker(lferec_msg, eval_field_logic);
+        }
+      }
+      else
+      {
+        ROS_WARN_STREAM("## ERROR SickScanCommon: parseLFErecMsg failed, received " << receiveBufferLength << " byte LFErec " << DataDumper::binDataToAsciiString(&receiveBuffer[0], receiveBufferLength));
+      }
+      return true; // LFErec message received
+    }
+    return false; // not a LFErec message
+  }
 
   int SickScanCommon::readLIDinputstate(SickScanFieldMonSingleton *fieldMon, bool useBinaryCmd)
   {
