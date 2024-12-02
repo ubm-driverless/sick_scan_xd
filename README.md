@@ -1073,7 +1073,7 @@ ros2 service call /SickScanExit sick_scan_xd/srv/SickScanExitSrv "{}" # stop sca
 > * The COLA commands are sensor specific. See the user manual and telegram listing for further details.
 > * ROS services require installation of ROS 1 or ROS 2, i.e. services for Cola commands are currently not supported on native Linux or native Windows.
 > * ROS services are currently not available for the LDMRS.
-> * ROS service "ColaMsg" should only be used for diagnosis. It is not recommended to change the lidar settings while the driver is running. Otherwise the driver settings can become different or inconsistant to the lidar settings. Restart the driver after changing lidar settings by SOAPS ET or SOPAS commands.
+> * ROS service "ColaMsg" should only be used for diagnosis. It is not recommended to change the lidar settings while the driver is running. Otherwise the driver settings can become different or inconsistent to the lidar settings. Restart the driver after changing lidar settings by SOAPS ET or SOPAS commands.
 > * Some SOPAS commands like `sMN SetAccessMode 3 F4724744` stop the current measurement. In this case, the driver restarts after a timeout (5 seconds by default). To process those SOPAS commands without restart, you can
 >    * send `sMN LMCstartmeas` and `sMN Run` to switch again into measurement mode within the timeout, or
 >    * increase the driver timeout `read_timeout_millisec_default` in the launch-file.
