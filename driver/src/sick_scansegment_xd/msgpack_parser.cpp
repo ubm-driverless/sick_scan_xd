@@ -602,7 +602,7 @@ bool sick_scansegment_xd::MsgPackParser::Parse(std::istream& msgpack_istream, fi
 			// result.timestamp = std::to_string(timestamp_data.int64_value());
 			SoftwarePLL& software_pll = SoftwarePLL::instance();
 			uint32_t curtick = timestamp_data.int32_value();
-			software_pll.updatePLL(systemtime_sec, systemtime_nsec, curtick);
+			software_pll.updatePLL(systemtime_sec, systemtime_nsec, curtick, curtick);
 			if (software_pll.IsInitialized())
 			{
 				uint32_t pll_sec = 0, pll_nsec = 0;

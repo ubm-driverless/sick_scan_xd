@@ -966,7 +966,7 @@ bool sick_scansegment_xd::CompactDataParser::Parse(const ScanSegmentParserConfig
         int64_t systemtime_nanoseconds = system_timestamp.time_since_epoch().count();
         uint32_t systemtime_sec = (uint32_t)(systemtime_nanoseconds / 1000000000);  // seconds part of system timestamp
         uint32_t systemtime_nsec = (uint32_t)(systemtime_nanoseconds % 1000000000); // nanoseconds part of system timestamp
-        software_pll.updatePLL(systemtime_sec, systemtime_nsec, sensor_timeStamp);
+        software_pll.updatePLL(systemtime_sec, systemtime_nsec, sensor_timeStamp, sensor_timeStamp);
         if (software_pll.IsInitialized())
         {
             uint32_t pll_sec = 0, pll_nsec = 0;
