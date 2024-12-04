@@ -638,6 +638,7 @@ namespace sick_scan_xd
 #endif
       lidinputstate_pub_ = rosAdvertise<sick_scan_msg::LIDinputstateMsg>(nh, nodename + "/lidinputstate", 100);
       lidoutputstate_pub_ = rosAdvertise<sick_scan_msg::LIDoutputstateMsg>(nh, nodename + "/lidoutputstate", 100);
+      sick_scan_xd::setLIDoutputstateTopic(nodename + "/lidoutputstate");
       publish_lferec_ = true;
       publish_lidinputstate_ = true;
       publish_lidoutputstate_ = true;
@@ -1170,7 +1171,6 @@ namespace sick_scan_xd
           }
           expectedAnswers << (n > 0 ? "," : "") << "\"" << searchPattern[n] << "\"" ;
         }
-        int lferec_error_code = ExitSuccess;
         bool useBinaryProtocol = (*((const uint32_t*)reply->data()) == 0x02020202);
         if(result == 0 && evaluateLFErecMessage(reply->data(), reply->size(), useBinaryProtocol, rosTimeNow()))
         {
@@ -4962,7 +4962,6 @@ namespace sick_scan_xd
                   }
 
                 }
-#ifndef _MSC_VER
                 if (parser_->getCurrentParamPtr()->getEncoderMode() >= 0 && FireEncoder == true)//
                 {
                   rosPublish(Encoder_pub, EncoderMsg);
@@ -4971,7 +4970,7 @@ namespace sick_scan_xd
                 {
                   sendMsg = false; // too many layers for publish as scan message. Only pointcloud messages will be pub.
                 }
-                if (sendMsg & outputChannelFlagId)  // publish only configured channels - workaround for cfg-bug MRS1104
+                if (sendMsg && (outputChannelFlagId != 0))  // publish only configured channels - workaround for cfg-bug MRS1104
                 {
 
                   // rosPublish(pub_, msg);
@@ -4987,9 +4986,6 @@ namespace sick_scan_xd
 #endif
 
                 }
-#else
-                ROS_DEBUG_STREAM("MSG received...");
-#endif
               }
             }
             else // i.e. (numEchos <= 0)

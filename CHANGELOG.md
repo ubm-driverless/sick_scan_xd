@@ -11,6 +11,7 @@ features that will be removed in future versions **Removed** for deprecated feat
   - **fix** TCP connection timeout, #424
   - **add** Support for LRS-4xxx IMU and contamination data, #418
   - **update** Improved TiM-7xx field evaluation status after start, #420
+  - **update** Dockertests for ROS-1, ROS-2 and API
 
 ## Released ##
 

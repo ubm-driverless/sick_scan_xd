@@ -207,7 +207,7 @@ endfunction()
 # endforeach()
 # --- CUT ---
 
-# jsoncpp required for emulator and lidar3d
+# jsoncpp required for emulator and dockertests
 if(${ENABLE_EMULATOR} OR ENABLE_EMULATOR EQUAL ON)
     # emulator requires jsoncpp for pcapng and other files
     find_package(jsoncpp REQUIRED) # install libjsoncpp by running "sudo apt-get install libjsoncpp-dev" (Linux) resp. "vcpkg install jsoncpp:x64-windows" (Windows) 
@@ -819,8 +819,7 @@ if(BUILD_SICK_SCAN_XD_API_TEST EQUAL 1)
         driver/src/sick_scan_xd_api/sick_scan_api_converter.cpp
         test/src/sick_scan_xd_api/sick_scan_xd_api_test.cpp
         test/src/sick_scan_xd_api/sick_scan_xd_api_wrapper.c
-        test/src/sick_scan_xd_api/toojpeg/toojpeg.cpp
-    )
+        test/src/sick_scan_xd_api/toojpeg/toojpeg.cpp)
     target_include_directories(sick_scan_xd_api_test PUBLIC test/src/sick_scan_xd_api/toojpeg)
     if(NOT WIN32)
         target_link_libraries(sick_scan_xd_api_test "dl") # link with dl for dynamic library loading
@@ -835,12 +834,26 @@ if(BUILD_SICK_SCAN_XD_API_TEST EQUAL 1)
         endif()
     endif()    
     if(${ENABLE_EMULATOR} OR ENABLE_EMULATOR EQUAL ON OR CMAKE_ENABLE_DOCKERTESTS EQUAL 1) # i.e. development or dockertests
+        if (${jsoncpp_FOUND})
+        else()
+            set(LIB_JSONCPP_INCLUDES 
+                test/docker/jsoncpp/include 
+                test/docker/jsoncpp/src/lib_json
+            )
+            set(LIB_JSONCPP_SRC 
+                test/docker/jsoncpp/src/lib_json/json_reader.cpp
+                test/docker/jsoncpp/src/lib_json/json_value.cpp
+                test/docker/jsoncpp/src/lib_json/json_writer.cpp
+            )
+        endif()
         add_executable(sick_scan_xd_api_dockertest
             driver/src/sick_scan_xd_api/sick_scan_api_converter.cpp
             test/src/sick_scan_xd_api/sick_scan_xd_api_dockertest.cpp
             test/src/sick_scan_xd_api/sick_scan_xd_api_wrapper.c
+            ${LIB_JSONCPP_SRC}
         )
         target_link_libraries(sick_scan_xd_api_dockertest ${LIB_JSONCPP})
+        target_include_directories(sick_scan_xd_api_dockertest PUBLIC ${LIB_JSONCPP_INCLUDES})
         if(NOT WIN32)
             target_link_libraries(sick_scan_xd_api_dockertest "dl") # link with dl for dynamic library loading
             if(ROS_VERSION EQUAL 0)
@@ -891,10 +904,10 @@ if(ROS_VERSION EQUAL 1)
         include/sick_scan/sick_scan_common.h
         DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION})
 
-    install(DIRECTORY test/
-        DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}/test
-        FILES_MATCHING PATTERN "*.xml"
-        PATTERN "test/src" EXCLUDE)
+    # install(DIRECTORY test/
+    #     DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}/test
+    #     FILES_MATCHING PATTERN "*.xml"
+    #     PATTERN "test/src" EXCLUDE)
 
     install(DIRECTORY launch/
         DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}/launch)
@@ -960,8 +973,8 @@ if((${ENABLE_EMULATOR} OR ENABLE_EMULATOR EQUAL ON) AND (NOT WIN32 OR ROS_VERSIO
             DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}/launch)
         install(DIRECTORY test/emulator/yaml/
             DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}/yaml)
-        install(DIRECTORY test/emulator/scandata/
-            DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}/scandata)
+        # install(DIRECTORY test/emulator/scandata/
+        #     DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}/scandata)
     else()
         install(TARGETS sick_scan_emulator
             RUNTIME DESTINATION lib/${PROJECT_NAME})
@@ -969,8 +982,8 @@ if((${ENABLE_EMULATOR} OR ENABLE_EMULATOR EQUAL ON) AND (NOT WIN32 OR ROS_VERSIO
             DESTINATION share/${PROJECT_NAME})
         install(DIRECTORY test/emulator/yaml/
             DESTINATION share/${PROJECT_NAME})
-        install(DIRECTORY test/emulator/scandata/
-            DESTINATION share/${PROJECT_NAME})
+        # install(DIRECTORY test/emulator/scandata/
+        #     DESTINATION share/${PROJECT_NAME})
     endif()
 endif()
 

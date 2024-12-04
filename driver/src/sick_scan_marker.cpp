@@ -107,7 +107,9 @@ sick_scan_xd::SickScanMarker::SickScanMarker(rosNodePtr nh, const std::string & 
     if(nh)
     {
         m_frame_id = marker_frame_id.empty() ? "/cloud" : marker_frame_id;
-        m_marker_publisher = rosAdvertise<ros_visualization_msgs::MarkerArray>(nh, marker_topic.empty() ? "sick_scan/marker" : marker_topic, 1);
+        std::string vis_marker_topic = marker_topic.empty() ? "sick_scan/marker" : marker_topic;
+        m_marker_publisher = rosAdvertise<ros_visualization_msgs::MarkerArray>(nh, vis_marker_topic, 1);
+        sick_scan_xd::setVisualizationMarkerTopic(vis_marker_topic);
         m_add_transform_xyz_rpy = sick_scan_xd::SickCloudTransform(nh, true);
     }
 }

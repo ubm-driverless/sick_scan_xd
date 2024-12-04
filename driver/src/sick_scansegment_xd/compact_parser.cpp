@@ -120,16 +120,16 @@ static inline bool endOfBuffer(uint32_t byte_cnt, size_t bytes_to_read, uint32_t
     return ((byte_cnt) + (bytes_to_read) > (num_bytes));
 }
 
-static void print_error(const std::string& err_msg, int line_number, double print_rate = 1)
+static void print_warning(const std::string& err_msg, int line_number, double print_rate = 1)
 {
   static std::map<int, std::chrono::system_clock::time_point> last_error_printed;
   static std::map<int, size_t> error_cnt;
   if (error_cnt[line_number] == 0 || std::chrono::duration<double>(std::chrono::system_clock::now() - last_error_printed[line_number]).count() > 1/print_rate)
   {
     if (error_cnt[line_number] <= 1)
-      ROS_ERROR_STREAM(err_msg);
+      ROS_WARN_STREAM(err_msg);
     else
-      ROS_ERROR_STREAM(err_msg << " (error repeated " << error_cnt[line_number] << " times)");
+      ROS_WARN_STREAM(err_msg << " (warning repeated " << error_cnt[line_number] << " times)");
     last_error_printed[line_number] = std::chrono::system_clock::now();
     error_cnt[line_number] = 0;
   }
@@ -140,9 +140,9 @@ static void print_error(const std::string& err_msg, int line_number, double prin
 if (((byte_required) = (byte_cnt) + (bytes_to_read)) > (module_size))                                       \
 {                                                                                                           \
     std::stringstream err_msg;                                                                              \
-    err_msg << "## ERROR CompactDataParser::ParseModuleMetaData(): module_size=" << (module_size) << ", "   \
+    err_msg << "## WARNING CompactDataParser::ParseModuleMetaData(): module_size=" << (module_size) << ", "   \
         << (byte_required) << " bytes required to read " << (name);                                         \
-    print_error(err_msg.str(), line_number);                                                                \
+    print_warning(err_msg.str(), line_number);                                                                \
     return (metadata);                                                                                      \
 }
 
@@ -338,8 +338,8 @@ sick_scansegment_xd::CompactModuleMetaData sick_scansegment_xd::CompactDataParse
     if (metadata.NumberOfLinesInModule > 16)
     {
         std::stringstream err_msg;
-        err_msg << "## ERROR CompactDataParser::ParseModuleMetaData(): unexpected NumberOfLinesInModule=" << metadata.NumberOfLinesInModule;
-        print_error(err_msg.str(), __LINE__);
+        err_msg << "## WARNING CompactDataParser::ParseModuleMetaData(): unexpected NumberOfLinesInModule=" << metadata.NumberOfLinesInModule;
+        print_warning(err_msg.str(), __LINE__);
     }
     // NumberOfBeamsPerScan
     CHECK_MODULE_SIZE(metadata, byte_required, byte_cnt, sizeof(uint32_t), module_size, "NumberOfBeamsPerScan", __LINE__);
@@ -755,8 +755,8 @@ bool sick_scansegment_xd::CompactDataParser::ParseSegment(const uint8_t* payload
         if (module_meta_data.valid != true || module_size < module_metadata_size)
         {
             std::stringstream err_msg;
-            err_msg << "## ERROR CompactDataParser::ParseSegment(): " << bytes_received << " bytes received (compact), CompactDataParser::ParseModuleMetaData() failed";
-            print_error(err_msg.str(), __LINE__);
+            err_msg << "## WARNING CompactDataParser::ParseSegment(): " << bytes_received << " bytes received (compact), CompactDataParser::ParseModuleMetaData() failed";
+            print_warning(err_msg.str(), __LINE__);
             payload_length_bytes = 0;
             num_bytes_required  = module_offset +  module_size;
             return false;
