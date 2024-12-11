@@ -890,6 +890,8 @@ bool sick_scansegment_xd::CompactDataParser::Parse(const ScanSegmentParserConfig
         for (int measurement_idx = 0; measurement_idx < moduleMeasurement.scandata.size(); measurement_idx++)
         {
             ScanSegmentParserOutput::Scangroup& scandata = moduleMeasurement.scandata[measurement_idx];
+            if (scandata.timestampStart_sec == 0)
+                ROS_WARN_STREAM("## WARNING CompactDataParser::Parse(): scandata.timestampStart_sec=" << scandata.timestampStart_sec << ", compact_parser.cpp:" << __LINE__);
             // Apply optional range filter and optional transform
             for(int line_idx = 0; line_idx < scandata.scanlines.size(); line_idx++)
             {
@@ -917,13 +919,10 @@ bool sick_scansegment_xd::CompactDataParser::Parse(const ScanSegmentParserConfig
                     while(result.scandata.size() <= groupIdx)
                     {
                       result.scandata.push_back(ScanSegmentParserOutput::Scangroup());
-                    }
-                    if (result.scandata[groupIdx].scanlines.empty())
-                    {
-                        result.scandata[groupIdx].timestampStart_sec = scandata.timestampStart_sec;
-                        result.scandata[groupIdx].timestampStart_nsec = scandata.timestampStart_nsec;
-                        result.scandata[groupIdx].timestampStop_sec = scandata.timestampStop_sec;
-                        result.scandata[groupIdx].timestampStop_nsec = scandata.timestampStop_nsec;
+                      result.scandata.back().timestampStart_sec = scandata.timestampStart_sec;
+                      result.scandata.back().timestampStart_nsec = scandata.timestampStart_nsec;
+                      result.scandata.back().timestampStop_sec = scandata.timestampStop_sec;
+                      result.scandata.back().timestampStop_nsec = scandata.timestampStop_nsec;
                     }
                     while(result.scandata[groupIdx].scanlines.size() <= echoIdx)
                     {
@@ -962,11 +961,22 @@ bool sick_scansegment_xd::CompactDataParser::Parse(const ScanSegmentParserConfig
     result.timestamp_nsec= 1000 * (sensor_timeStamp % 1000000);
     if (use_software_pll)
     {
+        if (sensor_timeStamp == 0 && !result.scandata.empty())
+        {
+            sensor_timeStamp = (uint64_t)result.scandata[0].timestampStart_sec * 1000000UL + (uint64_t)result.scandata[0].timestampStart_nsec / 1000; // i.e. start of scan in microseconds
+            ROS_WARN_STREAM("## WARNING CompactDataParser::Parse(): segmentHeader.timeStampTransmit=" << segmentHeader.timeStampTransmit 
+                << ", result.scandata[0].timestampStart_sec=" << result.scandata[0].timestampStart_sec << ", result.scandata[0].timestampStart_nsec=" << result.scandata[0].timestampStart_nsec 
+                << ", sensor_timeStamp=" << sensor_timeStamp << ", compact_parser.cpp:" << __LINE__);
+        }
+        else if(sensor_timeStamp == 0)
+        {
+            ROS_WARN_STREAM("## WARNING CompactDataParser::Parse(): segmentHeader.timeStampTransmit=" << segmentHeader.timeStampTransmit << ", sensor_timeStamp=" << sensor_timeStamp << ", compact_parser.cpp:" << __LINE__);
+        }
         SoftwarePLL& software_pll = SoftwarePLL::instance();
         int64_t systemtime_nanoseconds = system_timestamp.time_since_epoch().count();
         uint32_t systemtime_sec = (uint32_t)(systemtime_nanoseconds / 1000000000);  // seconds part of system timestamp
         uint32_t systemtime_nsec = (uint32_t)(systemtime_nanoseconds % 1000000000); // nanoseconds part of system timestamp
-        software_pll.updatePLL(systemtime_sec, systemtime_nsec, sensor_timeStamp, sensor_timeStamp);
+        software_pll.updatePLL(systemtime_sec, systemtime_nsec, segmentHeader.timeStampTransmit, sensor_timeStamp);
         if (software_pll.IsInitialized())
         {
             uint32_t pll_sec = 0, pll_nsec = 0;

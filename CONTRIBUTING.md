@@ -21,6 +21,7 @@ Table of Contents
 - [Testing](#testing)
   - [Unit tests](#unit-tests)
   - [Examples](#examples)
+  - [Dockertests](#dockertests)
 - [Simulation](#simulation)
   - [Windows](#windows)
   - [Linux](#linux)
@@ -474,6 +475,10 @@ rviz example screenshots using sick_scan_xd with LMS7xx and LMS7xxS test server:
 ![emulator_lms1xx_screenshot.png](doc/emulator_lms7xx_screenshot.png)
 
 Further examples are provided in folder `test/scripts`.
+
+## Dockertests
+
+Dockertests are a good alternative to test new versions. See details in [docker.md](test/docker/docker.md).
 
 # Simulation
 

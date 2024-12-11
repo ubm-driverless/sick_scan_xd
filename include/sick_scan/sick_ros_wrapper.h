@@ -296,7 +296,21 @@ inline void rosConvParam(const std::string& str_value, int& val){ val = std::sto
 inline void rosConvParam(const std::string& str_value, float& val){ val = std::stof(str_value); }
 inline void rosConvParam(const std::string& str_value, double& val){ val = std::stod(str_value); }
 
-template <typename T> void rosDeclareParam(rosNodePtr nh, const std::string& param_name, const T& param_value) { if(!nh->has_parameter(param_name)) nh->declare_parameter<T>(param_name, param_value); }
+template <typename T> void rosDeclareParam(rosNodePtr nh, const std::string& param_name, const T& param_value)
+{
+    try
+    {
+        if(!nh->has_parameter(param_name)) 
+        {
+            nh->declare_parameter<T>(param_name, param_value); 
+        }
+    }
+    catch(const std::exception& exc)
+    {
+        ROS_WARN_STREAM("## WARNING rosDeclareParam(" << param_name << ", " << paramToString(param_value) << ") failed, exception " << exc.what());
+    }
+}
+
 template <typename T> bool rosGetParam(rosNodePtr nh, const std::string& param_name, T& param_value)
 {
     try

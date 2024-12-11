@@ -460,7 +460,7 @@ namespace sick_scan_xd
     int readLIDinputstate(SickScanFieldMonSingleton *fieldMon, bool useBinaryCmd);
 
 #ifdef USE_DIAGNOSTIC_UPDATER
-    std::shared_ptr<diagnostic_updater::Updater> diagnostics_;
+    std::shared_ptr<diagnostic_updater::Updater> diagnostics_ = 0; // initialized once at start (avoid re-initialization due to ParameterAlreadyDeclaredException)
 #endif
 
   private:
@@ -504,14 +504,14 @@ namespace sick_scan_xd
     // Diagnostics
 #if defined USE_DIAGNOSTIC_UPDATER
 #if __ROS_VERSION == 1
-    diagnostic_updater::DiagnosedPublisher<ros_sensor_msgs::LaserScan> *diagnosticPub_;
+    diagnostic_updater::DiagnosedPublisher<ros_sensor_msgs::LaserScan> *diagnosticPub_ = 0;
 #elif __ROS_VERSION == 2
-    DiagnosedPublishAdapter<rosPublisher<ros_sensor_msgs::LaserScan>> *diagnosticPub_;
+    DiagnosedPublishAdapter<rosPublisher<ros_sensor_msgs::LaserScan>> *diagnosticPub_ = 0;
 #else
-    uint8_t* diagnosticPub_; // always 0
+    uint8_t* diagnosticPub_ = 0; // always 0
 #endif
 #else
-    uint8_t* diagnosticPub_; // always 0
+    uint8_t* diagnosticPub_ = 0; // always 0
 #endif
     double expectedFrequency_;
     std::string deviceIdentStr; // devide id from sopas response to "sRN DeviceIdent"

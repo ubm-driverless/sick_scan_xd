@@ -117,6 +117,10 @@
 
 static const int MAX_STR_LEN = 1024;
 
+#ifdef USE_DIAGNOSTIC_UPDATER
+static std::shared_ptr<diagnostic_updater::Updater> s_diagnostics_ = 0; // initialized once at start (avoid re-initialization due to ParameterAlreadyDeclaredException)
+#endif
+
 /*!
 \brief Universal swapping function
 \param ptr: Pointer to datablock
@@ -462,15 +466,18 @@ namespace sick_scan_xd
   SickScanCommon::SickScanCommon(rosNodePtr nh, SickGenericParser *parser)
   // FIXME All Tims have 15Hz
   {
-    diagnosticPub_ = 0;
     parser_ = parser;
     m_nh =nh;
 
 #ifdef USE_DIAGNOSTIC_UPDATER
 #if __ROS_VERSION == 1
-    diagnostics_ = std::make_shared<diagnostic_updater::Updater>(*nh);
+    if(s_diagnostics_ == 0)
+      s_diagnostics_ = std::make_shared<diagnostic_updater::Updater>(*nh);
+    diagnostics_ = s_diagnostics_;
 #elif __ROS_VERSION == 2
-    diagnostics_ = std::make_shared<diagnostic_updater::Updater>(nh);
+    if(s_diagnostics_ == 0)
+      s_diagnostics_ = std::make_shared<diagnostic_updater::Updater>(nh);
+    diagnostics_ = s_diagnostics_;
 #else
     diagnostics_ = 0;
 #endif
@@ -691,17 +698,23 @@ namespace sick_scan_xd
       }
       double max_timestamp_delay = 1.3 * num_active_layers / expectedFrequency_ - config_.time_offset;
 #if __ROS_VERSION == 1
-      diagnosticPub_ = new diagnostic_updater::DiagnosedPublisher<ros_sensor_msgs::LaserScan>(pub_, *diagnostics_,
-        // frequency should be target +- 10%.
-        diagnostic_updater::FrequencyStatusParam(&expectedFrequency_, &expectedFrequency_, expected_frequency_tolerance, 10),
-        // timestamp delta can be from 0.0 to 1.3x what it ideally is.
-        diagnostic_updater::TimeStampStatusParam(-1, max_timestamp_delay));
-      ROS_ASSERT(diagnosticPub_ != NULL);
+      if(!diagnosticPub_ && diagnostics_)
+      {
+            diagnosticPub_ = new diagnostic_updater::DiagnosedPublisher<ros_sensor_msgs::LaserScan>(pub_, *diagnostics_,
+              // frequency should be target +- 10%.
+              diagnostic_updater::FrequencyStatusParam(&expectedFrequency_, &expectedFrequency_, expected_frequency_tolerance, 10),
+              // timestamp delta can be from 0.0 to 1.3x what it ideally is.
+              diagnostic_updater::TimeStampStatusParam(-1, max_timestamp_delay));
+            ROS_ASSERT(diagnosticPub_ != NULL);
+      }
 #elif __ROS_VERSION == 2
-      diagnosticPub_ = new DiagnosedPublishAdapter<rosPublisher<ros_sensor_msgs::LaserScan>>(pub_, *diagnostics_,
-        diagnostic_updater::FrequencyStatusParam(&expectedFrequency_, &expectedFrequency_, expected_frequency_tolerance, 10), // frequency should be target +- 10%
-        diagnostic_updater::TimeStampStatusParam(-1, max_timestamp_delay));
-      assert(diagnosticPub_ != NULL);
+      if(!diagnosticPub_ && diagnostics_)
+      {
+            diagnosticPub_ = new DiagnosedPublishAdapter<rosPublisher<ros_sensor_msgs::LaserScan>>(pub_, *diagnostics_,
+              diagnostic_updater::FrequencyStatusParam(&expectedFrequency_, &expectedFrequency_, expected_frequency_tolerance, 10), // frequency should be target +- 10%
+              diagnostic_updater::TimeStampStatusParam(-1, max_timestamp_delay));
+            assert(diagnosticPub_ != NULL);
+      }
 #endif
     }
 #else
@@ -928,7 +941,8 @@ namespace sick_scan_xd
   SickScanCommon::~SickScanCommon()
   {
     delete cloud_marker_;
-    delete diagnosticPub_;
+    // delete diagnosticPub_; // do not delete to avoid ParameterAlreadyDeclaredException on reinitialisation
+    // diagnosticPub_ = 0;
     printf("SickScanCommon closed.\n");
   }
 
