@@ -2024,7 +2024,9 @@ File [trafo_example.py](doc/sick_scan_api/trafo_example.py) demonstrates how a t
 
 For upside down mounted devices, the point cloud can be rotated by 180 deg about the x axis (180 deg roll angle). This additional rotation is configured in the launch file using parameter `add_transform_xyz_rpy` with value `"0,0,0,3.141592,0,0"`. [sick_lrs_36x0_upside_down.launch](launch/sick_lrs_36x0_upside_down.launch) and [sick_lrs_36x1_upside_down.launch](launch/sick_lrs_36x1_upside_down.launch) show examples for compensating the point cloud of an upside down mounted device by a 180 deg rotation about the x axis.
 
+ROS [LaserScan](https://docs.ros.org/en/noetic/api/sensor_msgs/html/msg/LaserScan.html) messages represent scan data for single layer lidars in a compact form. sick_scan_xd publishes LaserScan messages for the zero degree layer, which can be used e.g. for 2D-SLAM. For multi-layer lidars like the multiScan136, the LaserScan messages have different frame ids for each layer (the frame id is "\<frame\>_\<layer_id\>"). Note that the LaserScan messages represent the scan data for different layers without a projection to a 2D plane, i.e. except for the 0 degree layer, the elevation angle of the layer must be applied additionally.
 
+To avoid layer dependent evaluation of LaserScan messages, it is recommended to use the 3D [PointCloud2](https://docs.ros2.org/foxy/api/sensor_msgs/msg/PointCloud2.html) messages. [RTAB-Map](#rtab-map) can be used for 3D-SLAM, see [RTAB-Map](#rtab-map) for an example using a multiScan lidar.
 
 ## IMU Support
 
