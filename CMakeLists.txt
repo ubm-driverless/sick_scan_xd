@@ -316,6 +316,7 @@ if(ROS_VERSION EQUAL 2)
     find_package(tf2 REQUIRED)
     find_package(tf2_ros REQUIRED)
     find_package(visualization_msgs REQUIRED)
+    find_package(vcu_srvs REQUIRED)
     if(${ENABLE_EMULATOR} OR ENABLE_EMULATOR EQUAL ON)
         set(ROSIDL_EMULATOR_FILES
             # emulator messages
@@ -748,6 +749,7 @@ if(ROS_VERSION EQUAL 2)
         "nav_msgs"
         "visualization_msgs"
         "tf2_ros"
+        "vcu_srvs"
         "${diagnostic_updater_pkg}"
         ${LDMRS_TARGET_DEPENDENCIES}
     )
@@ -762,6 +764,7 @@ if(ROS_VERSION EQUAL 2)
         "nav_msgs"
         "visualization_msgs"
         "tf2_ros"
+        "vcu_srvs"
         "${diagnostic_updater_pkg}"
         ${LDMRS_TARGET_DEPENDENCIES}
     )
@@ -776,6 +779,7 @@ if(ROS_VERSION EQUAL 2)
         "nav_msgs"
         "visualization_msgs"
         "tf2_ros"
+        "vcu_srvs"
         "${diagnostic_updater_pkg}"
         ${LDMRS_TARGET_DEPENDENCIES}
     )

@@ -350,6 +350,20 @@ bool sick_scansegment_xd::MsgPackThreads::runThreadCb(void)
         {
             std::this_thread::sleep_for(std::chrono::milliseconds(10));
         }    
+
+        // Create is ready service (WARNING: this makes this whole program only compatible with ROS 2)
+        rosDeclareParam(m_config.node, "is_ready_service", "/sick_scansegment_xd/is_ready");
+        rosGetParam(m_config.node, "is_ready_service", is_ready_service_name);
+        ready_service_ = m_config.node->create_service<vcu_srvs::srv::IsReady>(is_ready_service_name,
+                         std::bind(&sick_scansegment_xd::MsgPackThreads::is_ready_callback,
+                                   this, std::placeholders::_1, std::placeholders::_2));
+        
+        while (!is_ready_service_called && m_run_scansegment_thread && rosOk())
+        {
+            rclcpp::spin_some(m_config.node);
+            std::this_thread::sleep_for(std::chrono::milliseconds(10));
+        }
+
         // Monitor udp packets with timeout for udp messages in milliseconds, default: 10*1000
         while(m_run_scansegment_thread && rosOk())
         {
@@ -423,4 +437,14 @@ bool sick_scansegment_xd::MsgPackThreads::runThreadCb(void)
 
     ROS_INFO_STREAM("sick_scansegment_xd::runThreadCb() finished (" << __LINE__ << ")");
     return true;
+}
+
+void sick_scansegment_xd::MsgPackThreads::is_ready_callback(const std::shared_ptr<vcu_srvs::srv::IsReady::Request> request,
+                                                            std::shared_ptr<vcu_srvs::srv::IsReady::Response> response)
+{
+    (void)request; // Unused request parameter
+    response->success = true;
+    response->message = "SICK scansegment node is ready.";
+    is_ready_service_called = true;
+    RCLCPP_INFO(m_config.node->get_logger(), "SICK scansegment node readiness check requested.");
 }

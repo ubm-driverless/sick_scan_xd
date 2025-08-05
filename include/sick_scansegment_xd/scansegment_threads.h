@@ -63,6 +63,8 @@ namespace sick_scan_xd
 
 #include "sick_scansegment_xd/config.h"
 
+#include <vcu_srvs/srv/is_ready.hpp>
+
 namespace sick_scansegment_xd
 {
     /*
@@ -112,6 +114,13 @@ namespace sick_scansegment_xd
        sick_scansegment_xd::Config m_config;                      // sick_scansegment_xd configuration
        std::thread* m_scansegment_thread;                         // background thread to convert msgpack to ScanSegmentParserOutput data
        bool m_run_scansegment_thread;                             // flag to start and stop the udp converter thread
+    
+    private:
+        std::string is_ready_service_name;
+        bool is_ready_service_called = false;                     // flag to indicate if the is_ready service has been called
+        rclcpp::Service<vcu_srvs::srv::IsReady>::SharedPtr ready_service_;
+        void is_ready_callback(const std::shared_ptr<vcu_srvs::srv::IsReady::Request> request,
+                               std::shared_ptr<vcu_srvs::srv::IsReady::Response> response);
     };
 
     sick_scan_xd::SickScanServices* sopasService();
