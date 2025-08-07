@@ -358,10 +358,18 @@ bool sick_scansegment_xd::MsgPackThreads::runThreadCb(void)
                          std::bind(&sick_scansegment_xd::MsgPackThreads::is_ready_callback,
                                    this, std::placeholders::_1, std::placeholders::_2));
         
-        while (!is_ready_service_called && m_run_scansegment_thread && rosOk())
         {
-            rclcpp::spin_some(m_config.node);
-            std::this_thread::sleep_for(std::chrono::milliseconds(10));
+            // Wait for service call with a timeout
+            std::unique_lock<std::mutex> lock(ready_mutex);
+            bool service_called = ready_cv.wait_for(lock, std::chrono::seconds(5), [this]() {
+                return is_ready_service_called || !m_run_scansegment_thread || !rosOk();
+            });
+
+            if (is_ready_service_called) {
+                RCLCPP_INFO(m_config.node->get_logger(), "SICK scansegment node received readiness confirmation.");
+            } else if (!service_called) {
+                RCLCPP_WARN(m_config.node->get_logger(), "SICK scansegment node readiness check timed out after 5 seconds, continuing anyway.");
+            }
         }
 
         // Monitor udp packets with timeout for udp messages in milliseconds, default: 10*1000
@@ -445,6 +453,15 @@ void sick_scansegment_xd::MsgPackThreads::is_ready_callback(const std::shared_pt
     (void)request; // Unused request parameter
     response->success = true;
     response->message = "SICK scansegment node is ready.";
-    is_ready_service_called = true;
+
+    // Use mutex to safely update the flag
+    {
+        std::lock_guard<std::mutex> lock(ready_mutex);
+        is_ready_service_called = true;
+    }
+
+    // Notify waiting thread
+    ready_cv.notify_all();
+
     RCLCPP_INFO(m_config.node->get_logger(), "SICK scansegment node readiness check requested.");
 }

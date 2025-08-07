@@ -63,6 +63,8 @@ namespace sick_scan_xd
 
 #include "sick_scansegment_xd/config.h"
 
+#include <mutex>
+#include <condition_variable>
 #include <vcu_srvs/srv/is_ready.hpp>
 
 namespace sick_scansegment_xd
@@ -119,6 +121,10 @@ namespace sick_scansegment_xd
         std::string is_ready_service_name;
         bool is_ready_service_called = false;                     // flag to indicate if the is_ready service has been called
         rclcpp::Service<vcu_srvs::srv::IsReady>::SharedPtr ready_service_;
+
+        std::mutex ready_mutex;
+        std::condition_variable ready_cv;
+
         void is_ready_callback(const std::shared_ptr<vcu_srvs::srv::IsReady::Request> request,
                                std::shared_ptr<vcu_srvs::srv::IsReady::Response> response);
     };
