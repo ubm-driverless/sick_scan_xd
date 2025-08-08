@@ -371,7 +371,7 @@ bool parseLaunchfileSetParameter(rosNodePtr nhPriv, int argc, char **argv)
       }
       for (size_t i = 0; i < tagList.size(); i++)
       {
-        printf("%-30s %-10s %-20s\n", tagList[i].c_str(), typeList[i].c_str(), valList[i].c_str());
+        // printf("%-30s %-10s %-20s\n", tagList[i].c_str(), typeList[i].c_str(), valList[i].c_str());
         if(typeList[i] == "bool" && !valList[i].empty())
           rosSetParam(nhPriv, tagList[i], (bool)(valList[i][0] == '1' || valList[i][0] == 't' || valList[i][0] == 'T'));
         else if(typeList[i] == "int" && !valList[i].empty())

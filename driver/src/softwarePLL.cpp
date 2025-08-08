@@ -202,6 +202,12 @@ bool SoftwarePLL::updatePLL(uint32_t sec, uint32_t nanoSec, uint32_t curtickTran
 //TODO Kommentare
 bool SoftwarePLL::getCorrectedTimeStamp(uint32_t &u32Sec, uint32_t &u32NanoSec, uint64_t u64Curtick)
 {
+  // Static flags to track if warnings have already been shown
+  static bool warned_invalid_ticks = false;
+  static bool warned_large_time_diff = false;
+  static bool warned_exception = false;
+  static bool warned_fallback = false;
+
   if (ticksToTimestampMode == TICKS_TO_LIDAR_TIMESTAMP) // optional tick-mode: convert lidar ticks in microseconds directly into a lidar timestamp by sec = tick/1000000, nsec = 1000 * (tick % 1000000)
   {
     u32Sec = (uint32_t)(u64Curtick / 1000000);
@@ -235,10 +241,14 @@ bool SoftwarePLL::getCorrectedTimeStamp(uint32_t &u32Sec, uint32_t &u32NanoSec, 
   if (i64_curtick_minus_first < 0)
   {
     timestamp_ok = false;
-    ROS_WARN_STREAM("## WARNING SoftwarePLL::getCorrectedTimeStamp(u32Sec=" << u32Sec << ", u32NanoSec=" << u32NanoSec << ", u64Tick=" << u64Curtick << "): FirstTickScan=" << this->FirstTickScan() 
-      << ", Curtick-FirstTickScan=" << i64_curtick_minus_first << ", InterpolationSlope=" << this->InterpolationSlope() 
-      << ", (Curtick-FirstTickScan)*InterpolationSlope=" << ((u64Curtick-this->FirstTickScan())*this->InterpolationSlope()) << ", relTimeStamp1=" << relTimeStamp << ", relTimeStamp2=" << (i64_curtick_minus_first * this->InterpolationSlope())
-      << ", invalid lidar ticks, extrapolated timestamp not ok.");
+    if (!warned_invalid_ticks)
+    {
+      ROS_WARN_STREAM("## WARNING SoftwarePLL::getCorrectedTimeStamp(u32Sec=" << u32Sec << ", u32NanoSec=" << u32NanoSec << ", u64Tick=" << u64Curtick << "): FirstTickScan=" << this->FirstTickScan() 
+        << ", Curtick-FirstTickScan=" << i64_curtick_minus_first << ", InterpolationSlope=" << this->InterpolationSlope() 
+        << ", (Curtick-FirstTickScan)*InterpolationSlope=" << ((u64Curtick-this->FirstTickScan())*this->InterpolationSlope()) << ", relTimeStamp1=" << relTimeStamp << ", relTimeStamp2=" << (i64_curtick_minus_first * this->InterpolationSlope())
+        << ", invalid lidar ticks, extrapolated timestamp not ok. (Warning shown once)");
+      warned_invalid_ticks = true;
+    }
   }
   if (timestamp_ok)
   {
@@ -254,22 +264,34 @@ bool SoftwarePLL::getCorrectedTimeStamp(uint32_t &u32Sec, uint32_t &u32NanoSec, 
       if (std::abs(sec_delta) > 2)
       {
         timestamp_ok = false;
-        ROS_WARN_STREAM("## WARNING SoftwarePLL::getCorrectedTimeStamp(u64Tick=" << u64Curtick << "): extrapolated timestamp = " << std::fixed << std::setprecision(9) << (u32Sec + 1.0e-9 * u32NanoSec) 
-          << " [sec], ros timestamp now = " << std::fixed << std::setprecision(9) << (sec(timestamp_now) + 1.0e-9 * nsec(timestamp_now)) << " [sec], delta time = " << sec_delta << " [sec], extrapolated timestamp not ok.");
+        if (!warned_large_time_diff)
+        {
+          ROS_WARN_STREAM("## WARNING SoftwarePLL::getCorrectedTimeStamp(u64Tick=" << u64Curtick << "): extrapolated timestamp = " << std::fixed << std::setprecision(9) << (u32Sec + 1.0e-9 * u32NanoSec) 
+            << " [sec], ros timestamp now = " << std::fixed << std::setprecision(9) << (sec(timestamp_now) + 1.0e-9 * nsec(timestamp_now)) << " [sec], delta time = " << sec_delta << " [sec], extrapolated timestamp not ok. (Warning shown once)");
+          warned_large_time_diff = true;
+        }
       }
     }
     catch(const std::exception& exc)
     {
       timestamp_ok = false;
-      ROS_WARN_STREAM("## WARNING SoftwarePLL::getCorrectedTimeStamp(u32Sec=" << u32Sec << ", u32NanoSec=" << u32NanoSec << ", u64Tick=" << u64Curtick << "): exception \"" << exc.what() << "\", extrapolated timestamp not ok.");
+      if (!warned_exception)
+      {
+        ROS_WARN_STREAM("## WARNING SoftwarePLL::getCorrectedTimeStamp(u32Sec=" << u32Sec << ", u32NanoSec=" << u32NanoSec << ", u64Tick=" << u64Curtick << "): exception \"" << exc.what() << "\", extrapolated timestamp not ok. (Warning shown once)");
+        warned_exception = true;
+      }
     }
   }
   if (!timestamp_ok)
   {
     u32Sec = sec(timestamp_now);
     u32NanoSec = nsec(timestamp_now);
-    ROS_WARN_STREAM("## WARNING SoftwarePLL::getCorrectedTimeStamp() failed, returning current system time " << std::fixed << std::setprecision(9) << (u32Sec + 1.0e-9 * u32NanoSec) << " [sec]");
-    ROS_WARN_STREAM("## u64Curtick=" << u64Curtick << ", FirstTickScan()=" << this->FirstTickScan() << ", Curtick-FirstTickScan=" << i64_curtick_minus_first << ", FirstTimeStamp()=" << this->FirstTimeStamp() << ", InterpolationSlope()=" << this->InterpolationSlope() << ", corrTime=" << corrTime);
+    if (!warned_fallback)
+    {
+      ROS_WARN_STREAM("## WARNING SoftwarePLL::getCorrectedTimeStamp() failed, returning current system time " << std::fixed << std::setprecision(9) << (u32Sec + 1.0e-9 * u32NanoSec) << " [sec] (Warning shown once)");
+      ROS_WARN_STREAM("## u64Curtick=" << u64Curtick << ", FirstTickScan()=" << this->FirstTickScan() << ", Curtick-FirstTickScan=" << i64_curtick_minus_first << ", FirstTimeStamp()=" << this->FirstTimeStamp() << ", InterpolationSlope()=" << this->InterpolationSlope() << ", corrTime=" << corrTime);
+      warned_fallback = true;
+    }
   }
 #endif  
   return (true);
