@@ -354,7 +354,7 @@ bool sick_scansegment_xd::MsgPackThreads::runThreadCb(void)
         // Create is ready service (WARNING: this makes this whole program only compatible with ROS 2)
         rosDeclareParam(m_config.node, "is_ready_service", "/sick_scansegment_xd/is_ready");
         rosGetParam(m_config.node, "is_ready_service", is_ready_service_name);
-        ready_service_ = m_config.node->create_service<vcu_srvs::srv::IsReady>(is_ready_service_name,
+        ready_service_ = m_config.node->create_service<ubm_interfaces::srv::IsReady>(is_ready_service_name,
                          std::bind(&sick_scansegment_xd::MsgPackThreads::is_ready_callback,
                                    this, std::placeholders::_1, std::placeholders::_2));
         
@@ -447,8 +447,8 @@ bool sick_scansegment_xd::MsgPackThreads::runThreadCb(void)
     return true;
 }
 
-void sick_scansegment_xd::MsgPackThreads::is_ready_callback(const std::shared_ptr<vcu_srvs::srv::IsReady::Request> request,
-                                                            std::shared_ptr<vcu_srvs::srv::IsReady::Response> response)
+void sick_scansegment_xd::MsgPackThreads::is_ready_callback(const std::shared_ptr<ubm_interfaces::srv::IsReady::Request> request,
+                                                            std::shared_ptr<ubm_interfaces::srv::IsReady::Response> response)
 {
     (void)request; // Unused request parameter
     response->success = true;
